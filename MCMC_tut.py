@@ -5,17 +5,17 @@ from numba import jit, njit, types, vectorize
 
 @njit(nogil=True)
 def ln_likelihood(param, x, y, xerr, yerr):
-    """_summary_
+    """Functon to setup the log likelihoods 
 
     Args:
-        param (float array): _description_
-        x (array): _description_
-        y (array): _description_
-        xerr (array): _description_
-        yerr (array): _description_
+        param (float array eg. np.array((0.0, 0.0, 0.0))): initial values of the 3 parameters
+        x (array): x data
+        y (array): y data
+        xerr (array): error in x
+        yerr (array): error in y
 
     Returns:
-        _type_: _description_
+        _type_: likelihood function
     """
     
     m,b, sig = param[0], param[1], param[2]
