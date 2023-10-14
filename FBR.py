@@ -58,7 +58,7 @@ def ln_posterior(theta, x, y, xerr, yerr):
     return ln_prior(theta) + ln_likelihood(theta, x, y, xerr, yerr)
 
 @njit(nogil=True)
-def chol_sample(mean, cov):
+def multivariate_sample(mean, cov):
     """Function to get a sample from a multivariate normal distribution
 
     Args:
@@ -87,14 +87,14 @@ def metropolis_step(x, y, xerr, yerr, ln_post_0, theta_0=np.array((0.0, 0.0, 0.0
         (array, float): (parameters values, its log posterior)
     """
     #q = np.random.multivariate_normal(theta_0, step_cov)
-    q = chol_sample(theta_0, step_cov)
+    q = multivariate_sample(theta_0, step_cov)
     ln_post = ln_posterior(q, x, y, xerr, yerr)
     if ln_post - ln_post_0 > np.log(np.random.rand()):
         return q, ln_post
     return theta_0, ln_post_0
 
 @njit(nogil=True)
-def MH(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((1e-3, 1e-4, 1e-4)), n_steps=20000):
+def MCMC(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((1e-3, 1e-4, 1e-4)), n_steps=20000):
     """Function that runs the mcmc chain
 
     Args:
@@ -134,7 +134,7 @@ def get_param(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.d
     Returns:
         float: (slope, slope std, intercept, intercept std, intrinsic scatter, intrinsic scatter std)
     """
-    chain_0= MH(x, y, xerr, yerr, theta_0, step_cov, n_steps)
+    chain_0= MCMC(x, y, xerr, yerr, theta_0, step_cov, n_steps)
     slope, slope_err = chain_0[burn_in:,0].mean(), chain_0[burn_in:,0].std()
     intercept, intercept_err = chain_0[burn_in:,1].mean(), chain_0[burn_in:,1].std()
     int_sigma, int_sigma_err = chain_0[burn_in:,2].mean(), chain_0[burn_in:,2].std()
@@ -157,7 +157,7 @@ def get_raw_param(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=
     Returns:
         float array: slope, intercept, intrinsic scatter values with size (n_steps-burn_in)
     """
-    chain_0= MH(x, y, xerr, yerr, theta_0, step_cov, n_steps)
+    chain_0= MCMC(x, y, xerr, yerr, theta_0, step_cov, n_steps)
     slope = chain_0[burn_in:,0]
     intercept = chain_0[burn_in:,1]
     int_sigma = chain_0[burn_in:,2]
