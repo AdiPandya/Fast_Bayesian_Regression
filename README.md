@@ -1,5 +1,7 @@
 # Fast_Bayesian_Regression
 
+by **Aditya Pandya**
+
 This is the python scipt for doing bayesian linear regression.<br />
 It takes in the x and y data along with their errors and gives best fit results such as slope, intercept and intrinsic scatter along with their standard deviation values.
 
