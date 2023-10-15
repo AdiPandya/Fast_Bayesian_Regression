@@ -14,4 +14,4 @@ Along with the python script, there is a jupyter notebook file which shows how t
 Here is the flowchart of the algorithm used for bayesian linear regression:
 ![Flowchart][def]
 
-[def]: Images/flowchart.png
+[def]: Images/flowchart2.png
