@@ -10,3 +10,8 @@ Install numba using "$ pip install numba" in the terminal. <br />
 For more documentation visit: https://numba.pydata.org/numba-doc/latest/index.html
 
 Along with the python script, there is a jupyter notebook file which shows how to use the script with an example along with basics of bayesian linear regression.
+
+Here is the flowchart of the algorithm used for bayesian linear regression:
+![Flowchart][def]
+
+[def]: Images/flowchart.png
