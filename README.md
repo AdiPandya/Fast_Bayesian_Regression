@@ -2,7 +2,7 @@
 
 by **Aditya Pandya**
 
-This is the python scipt for performing bayesian linear regression.<br />
+This is the python scipt for performing fast bayesian linear regression.<br />
 It takes in the x and y data along with their errors and gives best fit results such as slope, intercept and intrinsic scatter along with their standard deviation values.
 
 It requires use of 2 python packages: numpy and numba <br />
