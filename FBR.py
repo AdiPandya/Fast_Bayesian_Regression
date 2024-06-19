@@ -3,7 +3,7 @@ import numpy as np
 from numba import jit, njit, types, vectorize
 
 @njit(nogil=True)
-def ln_likelihood(param, x, y, xerr, yerr):
+def ln_likelihood(param, x, y, xerr, yerr, method=0):
     """Functon to setup the log likelihoods 
 
     Args:
@@ -12,37 +12,64 @@ def ln_likelihood(param, x, y, xerr, yerr):
         y (array): y data
         xerr (array): error in x
         yerr (array): error in y
+        method (int): 0 for Y|X, 1 for X|Y, and 2 for ODR. Defaults to Y|X or 0.
 
     Returns:
         float: likelihood function in log
     """
-    m,b, sig = param[0], param[1], param[2]
-    f = m*x + b
-    sigma = np.sqrt((yerr**2) + np.square(m * xerr)+ (sig**2))
+    m,c, sig = param[0], param[1], param[2]
     
-    return -0.5 * np.sum((((y-f) / sigma) ** 2)+ np.log(2*np.pi*(sigma**2)))
+    if method == 0:
+        f = m*x + c
+        sigma = np.sqrt((yerr**2) + np.square(m * xerr)+ (sig**2))
+        
+        log_likelihood = -0.5 * np.sum((((y-f) / sigma) ** 2)+ np.log(2*np.pi*(sigma**2)))
+        
+    elif method == 1:
+        f = m*y + c
+        sigma = np.sqrt((xerr**2) + np.square(m * yerr)+ (sig**2))
+        log_likelihood = -0.5 * np.sum((((x-f) / sigma) ** 2)+ np.log(2*np.pi*(sigma**2)))
+        
+    elif method == 2:
+        f = m*x + c
+        sigma = np.sqrt(((yerr**2)/(1+m**2)) + (np.square(m * xerr)/(1+m**2))+ (sig**2))
+        log_likelihood = -0.5 * np.sum((((y-f)/(np.sqrt(1+m**2)*sigma))**2)+ np.log(2*np.pi*(sigma**2)))
+        
+    return log_likelihood
 
 @njit(nogil=True)
-def ln_prior(param):
+def ln_prior(param, method=0):
     """Function for setting up the log priors
 
     Args:
         param (float array): initial values of the 3 parameters
+        method (int): 0 for Y|X, 1 for X|Y, and 2 for ODR. Defaults to Y|X or 0.
 
     Returns:
         float: returns a 0.0 or negative infinity depending on the prior range
     """
-    m,b,sig = param[0], param[1], param[2]
-    if not (-10 < m < 10):
-        return -np.inf
-    if not (-10 < b < 10):
-        return -np.inf
-    if not (0 < sig < 10):
-        return -np.inf
-    return 0.0
+    m,c,sig = param[0], param[1], param[2]
+    
+    if method == 0 or 2:
+        if not (-10 < m < 10):
+            return -np.inf
+        if not (-10 < c < 10):
+            return -np.inf
+        if not (0 < sig < 10):
+            return -np.inf
+        return 0.0
+    
+    if method ==1:
+        if not (-10 < 1/m < 30):
+            return -np.inf
+        if not (-10 < -c/m < 10):
+            return -np.inf
+        if not (0 < sig < 10):
+            return -np.inf
+        return 0.0
 
 @njit(nogil=True)
-def ln_posterior(theta, x, y, xerr, yerr):
+def ln_posterior(theta, x, y, xerr, yerr, method=0):
     """function to setup the log posterior
 
     Args:
@@ -51,11 +78,12 @@ def ln_posterior(theta, x, y, xerr, yerr):
         y (array): y data
         xerr (array): error in x
         yerr (array): error in y
+        method (int): 0 for Y|X, 1 for X|Y, and 2 for ODR. Defaults to Y|X or 0.
 
     Returns:
         float: value of posterior in log
     """
-    return ln_prior(theta) + ln_likelihood(theta, x, y, xerr, yerr)
+    return ln_prior(theta, method) + ln_likelihood(theta, x, y, xerr, yerr, method)
 
 @njit(nogil=True)
 def multivariate_sample(mean, cov):
@@ -71,7 +99,7 @@ def multivariate_sample(mean, cov):
     return mean + np.linalg.cholesky(cov) @ np.random.standard_normal(mean.size)
 
 @njit(nogil=True)
-def metropolis_step(x, y, xerr, yerr, ln_post_0, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((1e-3, 1e-4, 1e-4))):
+def metropolis_step(x, y, xerr, yerr, ln_post_0, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((1e-3, 1e-4, 1e-4)), method=0):
     """Function that takes a step in the mcmc chain using the metropolis hastings algorithm
 
     Args:
@@ -88,13 +116,13 @@ def metropolis_step(x, y, xerr, yerr, ln_post_0, theta_0=np.array((0.0, 0.0, 0.0
     """
     #q = np.random.multivariate_normal(theta_0, step_cov)
     q = multivariate_sample(theta_0, step_cov)
-    ln_post = ln_posterior(q, x, y, xerr, yerr)
+    ln_post = ln_posterior(q, x, y, xerr, yerr, method)
     if ln_post - ln_post_0 > np.log(np.random.rand()):
         return q, ln_post
     return theta_0, ln_post_0
 
 @njit(nogil=True)
-def MCMC(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((1e-3, 1e-4, 1e-4)), n_steps=20000):
+def MCMC(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((1e-3, 1e-4, 1e-4)), n_steps=20000, method=0, chains=4, n_step_split=True, acc_frac=False):
     """Function that runs the mcmc chain
 
     Args:
@@ -109,13 +137,18 @@ def MCMC(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((
     Returns:
         3 dimensional numpy array: chain of mcmc samples
     """
-    lp0 = ln_posterior(theta_0, x, y, xerr, yerr)
-    chain = np.empty((n_steps, len(theta_0)))
-    for i in range(len(chain)):
-        theta_0, lp0 = metropolis_step(x, y, xerr, yerr, lp0, theta_0, step_cov)
-        chain[i] = theta_0
-    #acc = float(np.any(np.diff(chain, axis=0), axis=1).sum()) / (len(chain)-1)
-    return chain
+    lp0 = ln_posterior(theta_0, x, y, xerr, yerr, method)
+    chain = np.empty((n_steps, len(theta_0), chains))
+    for j in range(chains):
+        for i in range(len(chain)):
+            theta_0, lp0 = metropolis_step(x, y, xerr, yerr, lp0, theta_0, step_cov, method)
+            chain[i] = theta_0
+    
+    if acc_frac == True:
+        acc = float(np.any(np.diff(chain, axis=0), axis=1).sum()) / (len(chain)-1)
+        return chain, acc
+    else:
+        return chain
   
 @njit(nogil=True)
 def get_param(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((1e-3, 1e-4, 1e-4)), n_steps=20000, burn_in=2000):
