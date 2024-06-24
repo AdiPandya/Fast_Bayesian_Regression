@@ -340,7 +340,7 @@ def plot_trace(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.
     
     fig, ax = plt.subplots(3, 2, figsize=(8, 6), sharey='row',gridspec_kw={'width_ratios': [3, 1]})
 
-    chain_0,_ = MCMC(x, y, xerr, yerr, theta_0, step_cov, n_steps, method, n_chains, acc_frac)
+    chain_0,acc = MCMC(x, y, xerr, yerr, theta_0, step_cov, n_steps, method, n_chains, acc_frac)
     burn_in = burn_in//n_chains
     
     if m_chains == True:
@@ -378,14 +378,14 @@ def plot_trace(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.
         ax[1,0].plot(intercept[:,i])
         ax[2,0].plot(int_sigma[:,i])
         
-        seaborn.kdeplot(y=slope[burn_in:,i], ax=ax[0,1], label=f'Chain {i+1}')
+        seaborn.kdeplot(y=slope[burn_in:,i], ax=ax[0,1], label=f'Chain {i+1} acc frac = {round(acc[i],3)}')
         seaborn.kdeplot(y=intercept[burn_in:,i], ax=ax[1,1])
         seaborn.kdeplot(y=int_sigma[burn_in:,i], ax=ax[2,1])
         
         ax[2,0].set_xlabel('number of steps')
         ax[0,0].set_ylabel('Slope')
         ax[2,0].set_ylabel('Intrinsic scatter')
-        ax[0,1].legend(bbox_to_anchor=(1.9, 1.0))
+        ax[0,1].legend(bbox_to_anchor=(2.6, 1.0))
         ax[0,1].yaxis.tick_right()
         ax[1,1].yaxis.tick_right()
         ax[2,1].yaxis.tick_right()
@@ -395,15 +395,11 @@ def plot_trace(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.
         # ax[0,1].yaxis.set_label_position("right")
         # ax[2,1].yaxis.set_label_position("right")
         # ax[1,1].yaxis.set_label_position("right")
-        ax[0,1].set_ylabel('Slope', rotation=270, labelpad=20)
-        ax[2,1].set_ylabel('Intrinsic scatter', rotation=270, labelpad=20)
 
         if pow_law == True:
             ax[1,0].set_ylabel('Normalization')
-            ax[1,1].set_ylabel('Normalization', rotation=270, labelpad=20)
         else:
             ax[1,0].set_ylabel('Intercept')
-            ax[1,1].set_ylabel('Intercept', rotation=270, labelpad=20)
 
     fig.subplots_adjust(wspace=.05, hspace=.0)
     return 
