@@ -155,12 +155,12 @@ def MCMC(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.diag((
     """
     if n_chains > 1:
         n_step_split = True
-    elif n_chains == 1:
+    if n_chains == 1:
         n_step_split = False
         
     if n_step_split == True:
         n_steps = n_steps//n_chains
-    elif n_step_split == False:
+    if n_step_split == False:
         n_steps = n_steps
     
     acc = np.zeros(n_chains)
@@ -214,8 +214,8 @@ def get_param(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np.d
         
         int_sigma, int_sigma_err = chain_0[:,2].mean(), chain_0[:,2].std()
         
-    elif method == 1:
-        slope, slope_err = 1/(chain_0[:,0].mean()), (1/chain_0[:,0]).std()
+    if method == 1:
+        slope, slope_err = (1/chain_0[:,0]).mean(), (1/chain_0[:,0]).std()
         if pow_law == True:
             Norm = 10**(-chain_0[:,1]/chain_0[:,0])
             intercept, intercept_err = Norm.mean(), Norm.std()
@@ -258,7 +258,7 @@ def get_raw_param(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=
         int_sigma = chain_0[:,2]
     
     if method == 1:
-        slope = 1/(chain_0[:,0])
+        slope = (1/chain_0[:,0])
         if pow_law == True:
             intercept = 10**(-chain_0[:,1]/chain_0[:,0])
         else:
@@ -305,8 +305,8 @@ def get_a_param(x, y, xerr, yerr, theta_0=np.array((0.0, 0.0, 0.0)), step_cov=np
         int_sigma = np.median(chain_0[:,2])
         int_sigma_u, int_sigma_l = np.percentile(chain_0[:,2], [84, 16])
         
-    elif method == 1:
-        slope = np.median(chain_0[:,0])
+    if method == 1:
+        slope = np.median(1/chain_0[:,0])
         slope_u, slope_l = np.percentile(1/chain_0[:,0], [84, 16])
         if pow_law == True:
             Norm = 10**(-chain_0[:,1]/chain_0[:,0])
